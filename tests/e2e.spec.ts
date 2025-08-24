@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { platform } from 'node:process'
 import type { ElectronApplication, JSHandle } from '@playwright/test'
 import { test as base, _electron as electron, expect } from '@playwright/test'
@@ -16,11 +17,14 @@ const test = base.extend<TestFixtures>({
   electronApp: [
     async ({}, use) => {
       /**
-       * Executable path depends on root package name!
+       * Executable path depends on root package name.
+       * Read the root `package.json` to derive the executable name so tests
+       * continue to work if the project name was changed.
        */
-      let executablePattern = 'dist/*/root{,.*}'
+      const rootPkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+      let executablePattern = `dist/*/${rootPkg.name}{,.*}`
       if (platform === 'darwin') {
-        executablePattern += '/Contents/*/root'
+        executablePattern += `/Contents/*/${rootPkg.name}`
       }
 
       const [executablePath] = globSync(executablePattern)
